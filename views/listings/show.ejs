@@ -1,0 +1,148 @@
+<% layout("/layouts/boilerplate") %>
+<div class="row mt-3">
+  <div class="col-8 offset-2">
+
+    <h3><%= listing.title %></h3>
+  </div>
+<div class="card col-6 offset-2">
+  <img src="<%= listing.image.url %>" class="card-img-top  show-img" alt="listing_img">
+<div class="card-body">
+    <p class="card-text"><i><%= listing.owner.username %></i></p>
+    <p class="card-text"> <%= listing.description%></p>
+    <p class="card-text"> &#8377; <%= listing.price.toLocaleString("en-In") %></p>
+    <p class="card-text"><%= listing.location %></p>
+    <p class="card-text"><%= listing.country %></p>
+</div>
+</div>
+
+</div>
+<% if (curruser && curruser._id.equals(listing.owner._id)) { %>
+<div class="btns">
+  <a href="/listings/<%= listing._id %>/edit" class="btn btn-dark ">Edit </a>
+  
+  
+    <form method="POST" action="/listings/<%=listing._id%>?_method=DELETE">
+      <button class="btn btn-dark  delete-btn ">Delete </button>
+  </form>
+   </div>
+<% } %>
+
+
+<hr>
+<% if (curruser ) { %>
+<div class="col-8 offset-2">
+  <h4>Leave A Review</h4>
+  <form action="/listings/<%= listing.id %>/reviews" method="POST" novalidate class="needs-validation">
+  
+  <div class="mb-3 mt-3">
+    <label for="rating" class="form-label">Rating</label>
+  <fieldset class="starability-slot">
+    <input type="radio" id="no-rate" class="input-no-rate" name="review[rating]" value="0" checked aria-label="No rating." />
+    <input type="radio" id="first-rate1" name="review[rating]" value="1" />
+    <label for="first-rate1" title="Terrible">1 star</label>
+    <input type="radio" id="first-rate2" name="review[rating]" value="2" />
+    <label for="first-rate2" title="Not good">2 stars</label>
+    <input type="radio" id="first-rate3" name="review[rating]" value="3" />
+    <label for="first-rate3" title="Average">3 stars</label>
+    <input type="radio" id="first-rate4" name="review[rating]" value="4" />
+    <label for="first-rate4" title="Very good">4 stars</label>
+    <input type="radio" id="first-rate5" name="review[rating]" value="5" />
+    <label for="first-rate5" title="Amazing">5 stars</label>
+  </fieldset>
+  </div>
+  <div class="mb-3 mt-3"> 
+    <label for="Comment" class="form-label">Comments</label>
+    <textarea name="review[Comment]" id="comment" cols="30" rows="5" class="form-control" required></textarea>
+    <div class="invalid-feedback">
+      Please add some comments for review
+    </div>
+  </div>
+  
+ <button class="btn btn-outline-dark">Submit</button>
+</form>
+<% } %>
+<hr>
+
+<h3>Search your Destination on Map</h3>
+<h4>(<%=  listing.location%>  <%= listing.country  %>)</h4>
+
+<div id="form-container">
+    <form id="address-form">
+        <label for="address">Address:</label>
+        <input type="text" id="address" name="address" required>
+        <button type="submit">Go</button>
+    </form>
+<hr>
+</div>
+<div id="map"></div>
+<script>
+    var map = L.map('map').setView([0, 0], 2);
+    L.tileLayer("https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=xwLRXkAFBgiADnj13C9a", {
+        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>'
+    }).addTo(map);
+
+    var marker;
+
+    document.getElementById('address-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var address = document.getElementById('address').value;
+        geocodeAddress(address);
+    });
+
+    function geocodeAddress(address) {
+        var url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    var lat = data[0].lat;
+                    var lon = data[0].lon;
+
+                    if (marker) {
+                        marker.setLatLng([lat, lon]);
+                    } else {
+                        marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+                        marker.on('dragend', function(event) {
+                            var position = marker.getLatLng();
+                            updateInfo(position.lat, position.lng);
+                        });
+                    }
+                    map.setView([lat, lon], 13);
+                    updateInfo(lat, lon);
+                } else {
+                    alert('Address not found.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+    function updateInfo(lat, lon) {
+        document.getElementById('latitude').textContent = lat.toFixed(5);
+        document.getElementById('longitude').textContent = lon.toFixed(5);
+    }
+</script>
+
+
+<hr>
+<p><b>All Reviews</b></p>
+<div class="row">
+<% for(review of listing.reviews) { %>
+  <div class="card col-5 ms-3 mb-3">
+    <div class="card-body"></div>
+    <h5 class="card-title"><%= review.author.username %></h5>
+    <p class="starability-result card-text" data-rating="<%=review.rating%>"></p>
+    <p class="card-text"><%=review.Comment%></p>
+    <form class="mb-3" method="post" action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=DELETE">
+      <button class="btn btn-dark">Delete</button>
+    </form>
+  </div>
+  <% } %>
+</div>
+
+
+
+ </div>
+ <script src="/js/bootstrap.js" ></script>
